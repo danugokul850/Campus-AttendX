@@ -1,0 +1,60 @@
+const validator = require("validator");
+
+function validUser(data) {
+        const mandatoryField = ["firstName", "lastName", "emailId", "password", "phone", "role"];
+
+    const isAllowed = mandatoryField.every((k) => Object.keys(data).includes(k));
+
+    if (!isAllowed)
+        throw new Error("Fields Missing");
+
+    if (!(data.firstName.length >= 3 && data.firstName.length <= 20))
+        throw new Error("First name should have atleast 3 char and atmost 20 char");
+
+    if (!validator.isAlpha(data.firstName, "en-US", { ignore: " " }))
+        throw new Error("First name must contain only letters");
+
+    if (!(data.lastName.length <= 50))
+        throw new Error("Last name should have atmost 50 char");
+
+    if (!validator.isAlpha(data.lastName, "en-US", { ignore: " " }))
+        throw new Error("Last name must contain only letters");
+
+    if (!validator.isEmail(data.emailId))
+        throw new Error("Invalid Email");
+
+    if (!data.emailId.toLowerCase().endsWith("@svsu.ac.in"))
+        throw new Error("Email must be a valid @svsu.ac.in address");
+
+    if (!validator.isStrongPassword(data.password))
+        throw new Error("Weak Password");
+
+    if (!validator.isMobilePhone(data.phone, "en-IN"))
+        throw new Error("Invalid phone number");
+
+    if (!["student", "faculty", "admin"].includes(data.role))
+        throw new Error("Invalid role");
+
+    // Student-only mandatory fields
+    if (data.role === "student") {
+        const studentFields = ["registrationNumber", "department", "branch", "batch", "semester"];
+        const hasAllStudentFields = studentFields.every((k) => Object.keys(data).includes(k));
+
+        if (!hasAllStudentFields)
+            throw new Error("Missing student fields");
+
+        if (!validator.isAlphanumeric(data.registrationNumber))
+            throw new Error("Registration number must be alphanumeric");
+
+        if (!["CE", "AI/ML", "ECE", "ME"].includes(data.branch.toUpperCase()))
+            throw new Error("Invalid branch");
+
+        if (!(data.batch >= 2000 && data.batch <= 2100))
+            throw new Error("Invalid batch year");
+
+        if (!(data.semester >= 1 && data.semester <= 8))
+            throw new Error("Invalid semester");
+    }
+}
+
+module.exports = validUser;
