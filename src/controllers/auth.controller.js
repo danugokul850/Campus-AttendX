@@ -4,7 +4,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const redisClient = require("../config/redis");
 
-
 // =====================================================
 // REGISTER
 // =====================================================
@@ -14,7 +13,7 @@ const register = async (req, res) => {
         // Validate user data
         validUser(req.body);
 
-        // Hash password
+        // Hash password before storing it
         req.body.password = await bcrypt.hash(
             req.body.password,
             10
@@ -22,9 +21,8 @@ const register = async (req, res) => {
 
         const user = await User.create(req.body);
 
-        // Never send password in response
-        const { password, ...userResponse } =
-            user.toObject();
+        // Never return the password
+        const { password, ...userResponse } = user.toObject();
 
         return res.status(201).json({
             success: true,
@@ -33,12 +31,10 @@ const register = async (req, res) => {
         });
 
     } catch (err) {
-
-        // Duplicate key error
+        // Handle duplicate email, phone, or registration number
         if (err.code === 11000) {
-
             const duplicateField =
-                Object.keys(err.keyPattern)[0];
+                Object.keys(err.keyPattern || {})[0] || "Field";
 
             return res.status(409).json({
                 success: false,
@@ -46,7 +42,7 @@ const register = async (req, res) => {
             });
         }
 
-        // Mongoose validation error
+        // Mongoose validation errors
         if (err.name === "ValidationError") {
             return res.status(400).json({
                 success: false,
@@ -70,7 +66,6 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-
         const { emailId, password } = req.body;
 
         if (!emailId || !password) {
@@ -80,18 +75,19 @@ const login = async (req, res) => {
             });
         }
 
+        // Normalize email
         const user = await User.findOne({
             emailId: emailId.toLowerCase().trim()
         });
 
         if (!user) {
-            return res.status(404).json({
+            return res.status(401).json({
                 success: false,
-                message: "User not found"
+                message: "Invalid credentials"
             });
         }
 
-        // Check whether account is active
+        // Check whether the account is active
         if (!user.isActive) {
             return res.status(403).json({
                 success: false,
@@ -112,17 +108,12 @@ const login = async (req, res) => {
             });
         }
 
-        // =================================================
-        // ACCESS TOKEN
-        // =================================================
-
+        // Generate access token
         const accessToken = jwt.sign(
             {
                 _id: user._id,
                 emailId: user.emailId,
                 role: user.role,
-
-                // Only admin needs adminBranch
                 adminBranch:
                     user.role === "admin"
                         ? user.adminBranch
@@ -134,10 +125,7 @@ const login = async (req, res) => {
             }
         );
 
-        // =================================================
-        // REFRESH TOKEN
-        // =================================================
-
+        // Generate refresh token
         const refreshToken = jwt.sign(
             {
                 _id: user._id
@@ -161,10 +149,7 @@ const login = async (req, res) => {
         user.lastLogin = new Date();
         await user.save();
 
-        // =================================================
-        // COOKIES
-        // =================================================
-
+        // Set access-token cookie
         res.cookie("token", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -172,6 +157,7 @@ const login = async (req, res) => {
             maxAge: 15 * 60 * 1000
         });
 
+        // Set refresh-token cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -185,7 +171,6 @@ const login = async (req, res) => {
         });
 
     } catch (err) {
-
         console.error("Login error:", err);
 
         return res.status(500).json({
@@ -202,34 +187,20 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-
         const {
             token,
             refreshToken: storedRefreshToken
-        } = req.cookies;
+        } = req.cookies || {};
 
-        if (!token && !storedRefreshToken) {
-            return res.status(400).json({
-                success: false,
-                message: "Already logged out"
-            });
-        }
-
-        // -------------------------------------------------
-        // Block current access token
-        // -------------------------------------------------
-
+        // Block the current access token
         if (token) {
-
             try {
-
                 const payload = jwt.verify(
                     token,
                     process.env.JWT_SECRET_KEY
                 );
 
                 if (payload.exp) {
-
                     await redisClient.set(
                         `token:${token}`,
                         "Blocked",
@@ -238,11 +209,8 @@ const logout = async (req, res) => {
                         }
                     );
                 }
-
             } catch (err) {
-
-                // Access token may already be expired.
-                // We can still clear the cookies.
+                // The access token might already be expired.
                 console.log(
                     "Access token verification during logout:",
                     err.message
@@ -250,26 +218,18 @@ const logout = async (req, res) => {
             }
         }
 
-        // -------------------------------------------------
-        // Revoke refresh token
-        // -------------------------------------------------
-
+        // Revoke the refresh token
         if (storedRefreshToken) {
-
             try {
-
-                const refreshPayload =
-                    jwt.verify(
-                        storedRefreshToken,
-                        process.env.JWT_REFRESH_SECRET
-                    );
+                const refreshPayload = jwt.verify(
+                    storedRefreshToken,
+                    process.env.JWT_REFRESH_SECRET
+                );
 
                 await redisClient.del(
                     `refreshToken:${refreshPayload._id}`
                 );
-
             } catch (err) {
-
                 console.log(
                     "Refresh token verification during logout:",
                     err.message
@@ -278,8 +238,17 @@ const logout = async (req, res) => {
         }
 
         // Clear cookies
-        res.clearCookie("token");
-        res.clearCookie("refreshToken");
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax"
+        });
+
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax"
+        });
 
         return res.status(200).json({
             success: true,
@@ -287,11 +256,7 @@ const logout = async (req, res) => {
         });
 
     } catch (err) {
-
         console.error("Logout error:", err);
-
-        res.clearCookie("token");
-        res.clearCookie("refreshToken");
 
         return res.status(500).json({
             success: false,
@@ -307,8 +272,7 @@ const logout = async (req, res) => {
 
 const me = async (req, res) => {
     try {
-
-        // authMiddleware already verified the JWT
+        // authMiddleware must populate req.user.id
         const user = await User.findById(
             req.user.id
         ).select("-password");
@@ -327,7 +291,6 @@ const me = async (req, res) => {
         });
 
     } catch (err) {
-
         console.error("Me error:", err);
 
         return res.status(500).json({
@@ -344,10 +307,9 @@ const me = async (req, res) => {
 
 const refreshToken = async (req, res) => {
     try {
-
         const {
             refreshToken: storedRefreshToken
-        } = req.cookies;
+        } = req.cookies || {};
 
         if (!storedRefreshToken) {
             return res.status(401).json({
@@ -356,23 +318,16 @@ const refreshToken = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------
         // Verify refresh token
-        // -------------------------------------------------
-
         const payload = jwt.verify(
             storedRefreshToken,
             process.env.JWT_REFRESH_SECRET
         );
 
-        // -------------------------------------------------
-        // Check Redis
-        // -------------------------------------------------
-
-        const storedToken =
-            await redisClient.get(
-                `refreshToken:${payload._id}`
-            );
+        // Check refresh token in Redis
+        const storedToken = await redisClient.get(
+            `refreshToken:${payload._id}`
+        );
 
         if (!storedToken) {
             return res.status(401).json({
@@ -381,7 +336,7 @@ const refreshToken = async (req, res) => {
             });
         }
 
-        // Compare Redis token with cookie token
+        // Ensure the cookie token matches Redis
         if (storedToken !== storedRefreshToken) {
             return res.status(401).json({
                 success: false,
@@ -389,13 +344,8 @@ const refreshToken = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------
         // Find user
-        // -------------------------------------------------
-
-        const user = await User.findById(
-            payload._id
-        );
+        const user = await User.findById(payload._id);
 
         if (!user) {
             return res.status(404).json({
@@ -404,7 +354,6 @@ const refreshToken = async (req, res) => {
             });
         }
 
-        // Check account status
         if (!user.isActive) {
             return res.status(403).json({
                 success: false,
@@ -412,16 +361,12 @@ const refreshToken = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------
-        // Generate NEW access token
-        // -------------------------------------------------
-
+        // Generate new access token
         const newAccessToken = jwt.sign(
             {
                 _id: user._id,
                 emailId: user.emailId,
                 role: user.role,
-
                 adminBranch:
                     user.role === "admin"
                         ? user.adminBranch
@@ -433,18 +378,13 @@ const refreshToken = async (req, res) => {
             }
         );
 
-        // Send new access token
-        res.cookie(
-            "token",
-            newAccessToken,
-            {
-                httpOnly: true,
-                secure:
-                    process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: 15 * 60 * 1000
-            }
-        );
+        // Set new access-token cookie
+        res.cookie("token", newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 15 * 60 * 1000
+        });
 
         return res.status(200).json({
             success: true,
@@ -452,11 +392,7 @@ const refreshToken = async (req, res) => {
         });
 
     } catch (err) {
-
-        console.error(
-            "Refresh token error:",
-            err.message
-        );
+        console.error("Refresh token error:", err.message);
 
         return res.status(401).json({
             success: false,
@@ -472,7 +408,6 @@ const refreshToken = async (req, res) => {
 
 const changePassword = async (req, res) => {
     try {
-
         const {
             currentPassword,
             newPassword
@@ -481,15 +416,12 @@ const changePassword = async (req, res) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Current password and new password are required"
+                message: "Current password and new password are required"
             });
         }
 
-        // Get user from authenticated request
-        const user = await User.findById(
-            req.user.id
-        );
+        // Get authenticated user
+        const user = await User.findById(req.user.id);
 
         if (!user) {
             return res.status(404).json({
@@ -498,15 +430,11 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------
         // Verify current password
-        // -------------------------------------------------
-
-        const isPasswordCorrect =
-            await bcrypt.compare(
-                currentPassword,
-                user.password
-            );
+        const isPasswordCorrect = await bcrypt.compare(
+            currentPassword,
+            user.password
+        );
 
         if (!isPasswordCorrect) {
             return res.status(401).json({
@@ -515,51 +443,35 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------
-        // Make sure new password is different
-        // -------------------------------------------------
-
-        const isSamePassword =
-            await bcrypt.compare(
-                newPassword,
-                user.password
-            );
+        // Ensure the new password is different
+        const isSamePassword = await bcrypt.compare(
+            newPassword,
+            user.password
+        );
 
         if (isSamePassword) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "New password must be different from old password"
+                message: "New password must be different from old password"
             });
         }
 
-        // -------------------------------------------------
-        // Hash new password
-        // -------------------------------------------------
-
-        const hashedPassword =
-            await bcrypt.hash(
-                newPassword,
-                10
-            );
-
-        user.password = hashedPassword;
+        // Hash and save the new password
+        user.password = await bcrypt.hash(
+            newPassword,
+            10
+        );
 
         await user.save();
 
         return res.status(200).json({
             success: true,
-            message:
-                "Password changed successfully. Please login again.",
+            message: "Password changed successfully. Please log in again.",
             requireLogin: true
         });
 
     } catch (err) {
-
-        console.error(
-            "Change password error:",
-            err
-        );
+        console.error("Change password error:", err);
 
         return res.status(500).json({
             success: false,

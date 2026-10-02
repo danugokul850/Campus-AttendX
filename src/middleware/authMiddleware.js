@@ -2,12 +2,13 @@ const jwt = require("jsonwebtoken");
 
 const authentication = async (req, res, next) => {
     try {
+        // Get access token from the cookie
         const token = req.cookies?.token;
 
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: "Token is missing",
+                message: "Token is missing"
             });
         }
 
@@ -17,6 +18,18 @@ const authentication = async (req, res, next) => {
             process.env.JWT_SECRET_KEY
         );
 
+        // Check whether the token has been blocked in Redis
+        const redisClient = require("../config/redis");
+
+        const isBlocked = await redisClient.get(`token:${token}`);
+
+        if (isBlocked) {
+            return res.status(401).json({
+                success: false,
+                message: "Token has been revoked. Please log in again."
+            });
+        }
+
         // Store authenticated user information
         req.user = {
             id: payload._id,
@@ -25,12 +38,24 @@ const authentication = async (req, res, next) => {
             adminBranch: payload.adminBranch || null
         };
 
-        next();
+        return next();
 
     } catch (err) {
-        return res.status(401).json({
+        if (
+            err.name === "TokenExpiredError" ||
+            err.name === "JsonWebTokenError"
+        ) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid or expired token"
+            });
+        }
+
+        console.error("Authentication error:", err);
+
+        return res.status(500).json({
             success: false,
-            message: "Invalid or expired token",
+            message: "Authentication failed"
         });
     }
 };
