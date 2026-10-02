@@ -2,17 +2,17 @@ const express = require("express");
 
 const router = express.Router();
 
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("../../middleware/authMiddleware");
 
 const roleMiddleware =
-    require("../middleware/role.middleware");
+    require("../../middleware/role.middleware");
 
 const {
     getAllSubjects,
     getSubjectById,
     approveSubject,
     rejectSubject
-} = require("../controllers/adminSubject.controller");
+} = require("../../controllers/admin/adminSubject.controller");
 
 
 // Get all subjects

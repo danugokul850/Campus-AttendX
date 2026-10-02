@@ -2,18 +2,18 @@ const express = require("express");
 
 const router = express.Router();
 
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("../../middleware/authMiddleware");
 
-const roleMiddleware = require("../middleware/role.middleware");
+const roleMiddleware = require("../../middleware/role.middleware");
 
-const upload = require("../middleware/upload.middleware");
+const upload = require("../../middleware/upload.middleware");
 
 const {
     createSubject,
     getMySubjects,
     getMySubjectById,
     resubmitSubject
-} = require("../controllers/subject.controller");
+} = require("../../controllers/faculty/subject.controller");
 
 
 router.post(

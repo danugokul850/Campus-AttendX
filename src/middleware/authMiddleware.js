@@ -15,7 +15,7 @@ const authentication = async(req,res,next)=>{
             id: payload._id,
             emailId: payload.emailId,
             role: payload.role
-        };;
+        };
 
         next();
     }catch(err){

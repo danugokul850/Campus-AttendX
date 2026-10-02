@@ -1,4 +1,4 @@
-const subjectService = require("../services/subject.service");
+const subjectService = require("../../services/subject.service");
 
 
 // GET /api/admin/subjects

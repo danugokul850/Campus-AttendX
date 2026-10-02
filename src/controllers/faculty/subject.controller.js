@@ -1,8 +1,8 @@
-const subjectService = require("../services/subject.service");
+const subjectService = require("../../services/subject.service");
 
 const {
     validateSubjectData
-} = require("../validators/subject.validator");
+} = require("../../validators/subject.validator");
 
 
 // POST /api/subjects
