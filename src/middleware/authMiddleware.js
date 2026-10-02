@@ -18,7 +18,7 @@ const authentication = async (req, res, next) => {
             process.env.JWT_SECRET_KEY
         );
 
-        // Check whether the token has been blocked in Redis
+        // Check whether the token has been revoked in Redis
         const redisClient = require("../config/redis");
 
         const isBlocked = await redisClient.get(`token:${token}`);

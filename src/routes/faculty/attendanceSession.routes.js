@@ -2,29 +2,24 @@ const express = require("express");
 
 const router = express.Router();
 
-const authMiddleware =
-    require("../../middleware/authMiddleware");
-
-const roleMiddleware =
-    require("../../middleware/role.middleware");
-
+const authMiddleware = require("../../middleware/authMiddleware");
+const roleMiddleware = require("../../middleware/role.middleware");
 
 const {
     createAttendanceSession,
     getMySessions,
     getAttendanceSessionById,
+    getAttendanceSummary,
     closeAttendanceSession,
     markAttendance,
-    getAttendanceSummary,
     getMonthlyAttendanceReport,
     downloadMonthlyAttendanceReport
 } = require("../../controllers/faculty/attendanceSession.controller");
 
-
 // ==========================================
 // Faculty creates attendance session
+// POST /api/attendance-sessions
 // ==========================================
-
 router.post(
     "/",
     authMiddleware,
@@ -32,11 +27,10 @@ router.post(
     createAttendanceSession
 );
 
-
 // ==========================================
 // Faculty gets own sessions
+// GET /api/attendance-sessions/my-sessions
 // ==========================================
-
 router.get(
     "/my-sessions",
     authMiddleware,
@@ -44,59 +38,10 @@ router.get(
     getMySessions
 );
 
-
 // ==========================================
-// Faculty gets attendance summary
+// Monthly attendance report
+// GET /api/attendance-sessions/reports/monthly
 // ==========================================
-
-router.get(
-    "/:id/summary",
-    authMiddleware,
-    roleMiddleware("faculty"),
-    getAttendanceSummary
-);
-
-
-// ==========================================
-// Faculty gets one session
-// ==========================================
-
-router.get(
-    "/:id",
-    authMiddleware,
-    roleMiddleware("faculty"),
-    getAttendanceSessionById
-);
-
-
-// ==========================================
-// Faculty manually closes session
-// ==========================================
-
-router.patch(
-    "/:id/close",
-    authMiddleware,
-    roleMiddleware("faculty"),
-    closeAttendanceSession
-);
-
-
-// ==========================================
-// Student marks attendance
-// ==========================================
-
-router.post(
-    "/:id/mark",
-    authMiddleware,
-    roleMiddleware("student"),
-    markAttendance
-);
-
-// =====================================================
-// MONTHLY REPORT
-// IMPORTANT: keep before /:id
-// =====================================================
-
 router.get(
     "/reports/monthly",
     authMiddleware,
@@ -104,10 +49,10 @@ router.get(
     getMonthlyAttendanceReport
 );
 
-// =====================================================
-// DOWNLOAD MONTHLY REPORT
-// =====================================================
-
+// ==========================================
+// Download monthly attendance report
+// GET /api/attendance-sessions/reports/monthly/download
+// ==========================================
 router.get(
     "/reports/monthly/download",
     authMiddleware,
@@ -115,6 +60,48 @@ router.get(
     downloadMonthlyAttendanceReport
 );
 
+// ==========================================
+// Faculty gets attendance summary
+// GET /api/attendance-sessions/:id/summary
+// ==========================================
+router.get(
+    "/:id/summary",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    getAttendanceSummary
+);
 
+// ==========================================
+// Faculty gets one attendance session
+// GET /api/attendance-sessions/:id
+// ==========================================
+router.get(
+    "/:id",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    getAttendanceSessionById
+);
+
+// ==========================================
+// Faculty manually closes session
+// PATCH /api/attendance-sessions/:id/close
+// ==========================================
+router.patch(
+    "/:id/close",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    closeAttendanceSession
+);
+
+// ==========================================
+// Student marks attendance
+// POST /api/attendance-sessions/:id/mark
+// ==========================================
+router.post(
+    "/:id/mark",
+    authMiddleware,
+    roleMiddleware("student"),
+    markAttendance
+);
 
 module.exports = router;

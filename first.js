@@ -10,7 +10,7 @@ const mongoDB = require("./src/db/database");
 const redisClient = require("./src/config/redis");
 
 // Authentication and recovery routes
-const router = require("./src/routes/recoveryRoutes");
+const recoveryRouter = require("./src/routes/recoveryRoutes");
 const authRouter = require("./src/routes/auth.routes");
 
 // Faculty routes
@@ -43,7 +43,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 // Authentication and recovery
-app.use("/api/recovery", router);
+app.use("/api/recovery", recoveryRouter);
 app.use("/api", authRouter);
 
 // Faculty routes
@@ -79,7 +79,7 @@ async function Initialization() {
             redisClient.connect()
         ]);
 
-        console.log("Mongo & Redis connected successfully");
+        console.log("MongoDB and Redis connected successfully");
 
         const PORT = process.env.PORT || 4000;
 
