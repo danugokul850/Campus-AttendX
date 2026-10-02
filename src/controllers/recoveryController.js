@@ -1,8 +1,7 @@
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const { generateOtp } = require('../utils/otp');
-const { sendSms } = require('../utils/sms');
-const bcrypt = require('bcrypt');
+const { sendSms } = require('../utils/sms'); 
 
 // Step 1: User requests OTP using their phone number
 const requestOtp = async (req, res) => {

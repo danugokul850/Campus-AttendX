@@ -1,7 +1,7 @@
 const validator = require("validator");
 
 function validUser(data) {
-        const mandatoryField = ["firstName", "lastName", "emailId", "password", "phone", "role"];
+    const mandatoryField = ["firstName", "lastName", "emailId", "password", "phone", "role"];
 
     const isAllowed = mandatoryField.every((k) => Object.keys(data).includes(k));
 
@@ -35,19 +35,25 @@ function validUser(data) {
     if (!["student", "faculty", "admin"].includes(data.role))
         throw new Error("Invalid role");
 
+    // Fields required for BOTH student and faculty
+    if (data.role === "student" || data.role === "faculty") {
+        if (!data.department || data.department.toUpperCase() !== "SFET")
+            throw new Error("Invalid department");
+
+        if (!data.branch || !["CE", "AI/ML", "ECE", "ME", "DIPLOMA CE", "BCA"].includes(data.branch.toUpperCase()))
+            throw new Error("Invalid branch");
+    }
+
     // Student-only mandatory fields
     if (data.role === "student") {
-        const studentFields = ["registrationNumber", "department", "branch", "batch", "semester"];
-        const hasAllStudentFields = studentFields.every((k) => Object.keys(data).includes(k));
+        const studentFields = ["registrationNumber", "department","course","branch","batch", "semester"];
+        const hasAllStudentFields = studentFields.every((k) => Object.keys(data).includes(k) && data[k] !== "" && data[k] !== null && data[k] !== undefined);
 
         if (!hasAllStudentFields)
             throw new Error("Missing student fields");
 
         if (!validator.isAlphanumeric(data.registrationNumber))
             throw new Error("Registration number must be alphanumeric");
-
-        if (!["CE", "AI/ML", "ECE", "ME"].includes(data.branch.toUpperCase()))
-            throw new Error("Invalid branch");
 
         if (!(data.batch >= 2000 && data.batch <= 2100))
             throw new Error("Invalid batch year");

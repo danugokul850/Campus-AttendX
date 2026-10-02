@@ -29,7 +29,9 @@ const userSchema = new Schema({
     },
     phone: {
         type: String,
+        unique:true,
         required: true,
+        trim:true,
     },
     role: {
         type: String,
@@ -51,13 +53,26 @@ const userSchema = new Schema({
         required: function () { return this.role === "student"; }
     },
     department: {
-        type: mongoose.Schema.Types.ObjectId, // e.g. SFET
-        ref: "Department",
-        required: function () { return this.role === "student"; }
-    },
+        type: String,
+        required: function () {
+        return this.role === "student" || this.role === "faculty";
+        },
+        enum: ["SFET"],
+        trim: true,
+        uppercase: true
+        },
+    course: {
+        type: String,
+        required: function () {
+            return this.role === "student" || this.role === "faculty";
+        },
+        enum: ["B.TECH", "BCA", "DIPLOMA"],
+        uppercase: true,
+        trim: true
+            },
     branch: {
         type: String,
-        required: function () { return this.role === "student"; },
+        required: function () { return this.role === "student" || this.role === "faculty";},
         enum: ["CE", "AI/ML", "ECE", "ME"], // update with your university's actual branches
         uppercase: true,
         trim: true
