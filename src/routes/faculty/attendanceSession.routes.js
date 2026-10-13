@@ -14,13 +14,17 @@ const {
     getMySessions,
     getAttendanceSessionById,
     closeAttendanceSession,
-    markAttendance
+    markAttendance,
+    getAttendanceSummary,
+    getMonthlyAttendanceReport,
+    downloadMonthlyAttendanceReport
 } = require("../../controllers/faculty/attendanceSession.controller");
 
 
-/*
-    Faculty creates session
-*/
+// ==========================================
+// Faculty creates attendance session
+// ==========================================
+
 router.post(
     "/",
     authMiddleware,
@@ -29,9 +33,10 @@ router.post(
 );
 
 
-/*
-    Faculty gets own sessions
-*/
+// ==========================================
+// Faculty gets own sessions
+// ==========================================
+
 router.get(
     "/my-sessions",
     authMiddleware,
@@ -40,9 +45,22 @@ router.get(
 );
 
 
-/*
-    Faculty gets one session
-*/
+// ==========================================
+// Faculty gets attendance summary
+// ==========================================
+
+router.get(
+    "/:id/summary",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    getAttendanceSummary
+);
+
+
+// ==========================================
+// Faculty gets one session
+// ==========================================
+
 router.get(
     "/:id",
     authMiddleware,
@@ -51,9 +69,10 @@ router.get(
 );
 
 
-/*
-    Faculty closes session
-*/
+// ==========================================
+// Faculty manually closes session
+// ==========================================
+
 router.patch(
     "/:id/close",
     authMiddleware,
@@ -62,15 +81,40 @@ router.patch(
 );
 
 
-/*
-    Student marks attendance
-*/
+// ==========================================
+// Student marks attendance
+// ==========================================
+
 router.post(
     "/:id/mark",
     authMiddleware,
     roleMiddleware("student"),
     markAttendance
 );
+
+// =====================================================
+// MONTHLY REPORT
+// IMPORTANT: keep before /:id
+// =====================================================
+
+router.get(
+    "/reports/monthly",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    getMonthlyAttendanceReport
+);
+
+// =====================================================
+// DOWNLOAD MONTHLY REPORT
+// =====================================================
+
+router.get(
+    "/reports/monthly/download",
+    authMiddleware,
+    roleMiddleware("faculty"),
+    downloadMonthlyAttendanceReport
+);
+
 
 
 module.exports = router;

@@ -2,9 +2,10 @@ const attendanceSessionService =
     require("../../services/attendanceSession.service");
 
 
-/*
-    Faculty creates attendance session
-*/
+// ==========================================
+// Faculty creates attendance session
+// ==========================================
+
 const createAttendanceSession = async (
     req,
     res,
@@ -19,18 +20,27 @@ const createAttendanceSession = async (
 
 
         if (!subjectId) {
+
             return res.status(400).json({
+
                 success: false,
+
                 message: "subjectId is required"
+
             });
+
         }
 
 
         const result =
             await attendanceSessionService
                 .createAttendanceSession({
-                    facultyId: req.user.id,
+
+                    facultyId:
+                        req.user.id,
+
                     subjectId
+
                 });
 
 
@@ -53,9 +63,10 @@ const createAttendanceSession = async (
 };
 
 
-/*
-    Faculty gets own sessions
-*/
+// ==========================================
+// Faculty gets own attendance sessions
+// ==========================================
+
 const getMySessions = async (
     req,
     res,
@@ -87,9 +98,10 @@ const getMySessions = async (
 };
 
 
-/*
-    Faculty gets one session
-*/
+// ==========================================
+// Faculty gets one attendance session
+// ==========================================
+
 const getAttendanceSessionById = async (
     req,
     res,
@@ -102,9 +114,11 @@ const getAttendanceSessionById = async (
             await attendanceSessionService
                 .getAttendanceSessionById({
 
-                    sessionId: req.params.id,
+                    sessionId:
+                        req.params.id,
 
-                    facultyId: req.user.id
+                    facultyId:
+                        req.user.id
 
                 });
 
@@ -125,9 +139,54 @@ const getAttendanceSessionById = async (
 };
 
 
-/*
-    Faculty closes session
-*/
+// ==========================================
+// Faculty gets attendance summary
+// ==========================================
+
+const getAttendanceSummary = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const summary =
+            await attendanceSessionService
+                .getAttendanceSummary({
+
+                    sessionId:
+                        req.params.id,
+
+                    facultyId:
+                        req.user.id
+
+                });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Attendance summary fetched successfully",
+
+            data: summary
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+
+// ==========================================
+// Faculty manually closes session
+// ==========================================
+
 const closeAttendanceSession = async (
     req,
     res,
@@ -140,9 +199,11 @@ const closeAttendanceSession = async (
             await attendanceSessionService
                 .closeAttendanceSession({
 
-                    sessionId: req.params.id,
+                    sessionId:
+                        req.params.id,
 
-                    facultyId: req.user.id
+                    facultyId:
+                        req.user.id
 
                 });
 
@@ -166,9 +227,10 @@ const closeAttendanceSession = async (
 };
 
 
-/*
-    Student marks attendance
-*/
+// ==========================================
+// Student marks attendance
+// ==========================================
+
 const markAttendance = async (
     req,
     res,
@@ -208,6 +270,115 @@ const markAttendance = async (
     }
 };
 
+// =====================================================
+// MONTHLY ATTENDANCE REPORT
+// =====================================================
+
+const getMonthlyAttendanceReport = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const {
+            subjectId,
+            month,
+            year
+        } = req.query;
+
+
+        const report =
+            await attendanceSessionService
+                .getMonthlyAttendanceReport({
+                    subjectId,
+                    month,
+                    year,
+                    facultyId: req.user.id
+                });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Monthly attendance report fetched successfully",
+
+            data: report
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+// =====================================================
+// DOWNLOAD MONTHLY ATTENDANCE REPORT
+// =====================================================
+
+const downloadMonthlyAttendanceReport = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const {
+            subjectId,
+            month,
+            year
+        } = req.query;
+
+
+        const report =
+            await attendanceSessionService
+                .downloadMonthlyAttendanceReport({
+
+                    subjectId,
+
+                    month,
+
+                    year,
+
+                    facultyId:
+                        req.user.id
+
+                });
+
+
+        res.setHeader(
+            "Content-Type",
+            report.contentType
+        );
+
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${report.fileName}"`
+        );
+
+
+        return res.send(
+            report.buffer
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+
+// ==========================================
+// Export controllers
+// ==========================================
 
 module.exports = {
 
@@ -217,8 +388,14 @@ module.exports = {
 
     getAttendanceSessionById,
 
+    getAttendanceSummary,
+
     closeAttendanceSession,
 
-    markAttendance
+    markAttendance,
+
+    getMonthlyAttendanceReport,
+
+    downloadMonthlyAttendanceReport
 
 };

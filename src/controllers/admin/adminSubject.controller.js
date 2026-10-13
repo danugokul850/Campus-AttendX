@@ -1,7 +1,10 @@
 const subjectService = require("../../services/subject.service");
 
 
+// ==========================================
 // GET /api/admin/subjects
+// ==========================================
+
 const getAllSubjects = async (req, res, next) => {
 
     try {
@@ -9,7 +12,10 @@ const getAllSubjects = async (req, res, next) => {
         const subjects =
             await subjectService.getAllSubjects({
 
-                status: req.query.status
+                status: req.query.status,
+
+                // Branch scope of logged-in admin
+                adminBranch: req.user.adminBranch
 
             });
 
@@ -30,15 +36,23 @@ const getAllSubjects = async (req, res, next) => {
 };
 
 
+// ==========================================
 // GET /api/admin/subjects/:id
+// ==========================================
+
 const getSubjectById = async (req, res, next) => {
 
     try {
 
         const subject =
-            await subjectService.getSubjectById(
-                req.params.id
-            );
+            await subjectService.getSubjectById({
+
+                subjectId: req.params.id,
+
+                // Branch scope of logged-in admin
+                adminBranch: req.user.adminBranch
+
+            });
 
 
         return res.status(200).json({
@@ -57,7 +71,10 @@ const getSubjectById = async (req, res, next) => {
 };
 
 
+// ==========================================
 // PATCH /api/admin/subjects/:id/approve
+// ==========================================
+
 const approveSubject = async (req, res, next) => {
 
     try {
@@ -67,7 +84,10 @@ const approveSubject = async (req, res, next) => {
 
                 subjectId: req.params.id,
 
-                adminId: req.user.id
+                adminId: req.user.id,
+
+                // Branch scope of logged-in admin
+                adminBranch: req.user.adminBranch
 
             });
 
@@ -90,7 +110,10 @@ const approveSubject = async (req, res, next) => {
 };
 
 
+// ==========================================
 // PATCH /api/admin/subjects/:id/reject
+// ==========================================
+
 const rejectSubject = async (req, res, next) => {
 
     try {
@@ -105,7 +128,10 @@ const rejectSubject = async (req, res, next) => {
 
                 adminId: req.user.id,
 
-                reason
+                reason,
+
+                // Branch scope of logged-in admin
+                adminBranch: req.user.adminBranch
 
             });
 

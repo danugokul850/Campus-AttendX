@@ -7,6 +7,29 @@ const {
 
 
 // ==========================================
+// Admin branch scope helper
+// ==========================================
+
+const applyAdminBranchScope = (filter, adminBranch) => {
+
+    // Super admin can access all branches
+    if (adminBranch === "ALL") {
+        return filter;
+    }
+
+    // Branch admin must have a configured branch
+    if (!adminBranch) {
+        throw new Error("Admin branch is not configured");
+    }
+
+    // Restrict query to admin's branch
+    filter.branch = adminBranch;
+
+    return filter;
+};
+
+
+// ==========================================
 // Faculty creates a new subject
 // ==========================================
 
@@ -114,14 +137,22 @@ const getMySubjectById = async ({
 // ==========================================
 
 const getAllSubjects = async ({
-    status
+    status,
+    adminBranch
 }) => {
 
     const filter = {};
 
+    // Optional status filter
     if (status) {
         filter.status = status;
     }
+
+    // Apply admin branch restriction
+    applyAdminBranchScope(
+        filter,
+        adminBranch
+    );
 
 
     return await Subject.find(filter)
@@ -147,26 +178,38 @@ const getAllSubjects = async ({
 // Admin gets one subject
 // ==========================================
 
-const getSubjectById = async (subjectId) => {
+const getSubjectById = async ({
+    subjectId,
+    adminBranch
+}) => {
 
-    const subject = await Subject.findById(
-        subjectId
-    )
+    const filter = {
+        _id: subjectId
+    };
 
-    .populate(
-        "submittedBy",
-        "firstName lastName emailId"
-    )
-
-    .populate(
-        "reviewedBy",
-        "firstName lastName emailId"
+    // Apply admin branch restriction
+    applyAdminBranchScope(
+        filter,
+        adminBranch
     );
+
+
+    const subject = await Subject.findOne(filter)
+
+        .populate(
+            "submittedBy",
+            "firstName lastName emailId"
+        )
+
+        .populate(
+            "reviewedBy",
+            "firstName lastName emailId"
+        );
 
 
     if (!subject) {
         throw new Error(
-            "Subject not found"
+            "Subject not found or access denied"
         );
     }
 
@@ -181,16 +224,28 @@ const getSubjectById = async (subjectId) => {
 
 const approveSubject = async ({
     subjectId,
-    adminId
+    adminId,
+    adminBranch
 }) => {
 
+    const filter = {
+        _id: subjectId
+    };
+
+    // Apply admin branch restriction
+    applyAdminBranchScope(
+        filter,
+        adminBranch
+    );
+
+
     const subject =
-        await Subject.findById(subjectId);
+        await Subject.findOne(filter);
 
 
     if (!subject) {
         throw new Error(
-            "Subject not found"
+            "Subject not found or access denied"
         );
     }
 
@@ -227,16 +282,28 @@ const approveSubject = async ({
 const rejectSubject = async ({
     subjectId,
     adminId,
-    reason
+    reason,
+    adminBranch
 }) => {
 
+    const filter = {
+        _id: subjectId
+    };
+
+    // Apply admin branch restriction
+    applyAdminBranchScope(
+        filter,
+        adminBranch
+    );
+
+
     const subject =
-        await Subject.findById(subjectId);
+        await Subject.findOne(filter);
 
 
     if (!subject) {
         throw new Error(
-            "Subject not found"
+            "Subject not found or access denied"
         );
     }
 
