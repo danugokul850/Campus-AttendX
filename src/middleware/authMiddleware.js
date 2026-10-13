@@ -41,6 +41,7 @@ const authentication = async (req, res, next) => {
         return next();
 
     } catch (err) {
+        // Handle invalid or expired JWTs
         if (
             err.name === "TokenExpiredError" ||
             err.name === "JsonWebTokenError"

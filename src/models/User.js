@@ -3,6 +3,10 @@ const { Schema } = mongoose;
 
 const userSchema = new Schema(
     {
+        // =========================
+        // BASIC INFORMATION
+        // =========================
+
         firstName: {
             type: String,
             minlength: 3,
@@ -39,6 +43,10 @@ const userSchema = new Schema(
             trim: true
         },
 
+        // =========================
+        // USER ROLE
+        // =========================
+
         role: {
             type: String,
             required: true,
@@ -64,7 +72,10 @@ const userSchema = new Schema(
         department: {
             type: String,
             required: function () {
-                return this.role === "student" || this.role === "faculty";
+                return (
+                    this.role === "student" ||
+                    this.role === "faculty"
+                );
             },
             enum: ["SFET"],
             trim: true,
@@ -74,7 +85,10 @@ const userSchema = new Schema(
         course: {
             type: String,
             required: function () {
-                return this.role === "student" || this.role === "faculty";
+                return (
+                    this.role === "student" ||
+                    this.role === "faculty"
+                );
             },
             enum: ["B.TECH", "BCA", "DIPLOMA"],
             uppercase: true,
@@ -84,7 +98,10 @@ const userSchema = new Schema(
         branch: {
             type: String,
             required: function () {
-                return this.role === "student" || this.role === "faculty";
+                return (
+                    this.role === "student" ||
+                    this.role === "faculty"
+                );
             },
             enum: ["CE", "AI/ML", "ECE", "ME"],
             uppercase: true,
@@ -97,7 +114,15 @@ const userSchema = new Schema(
 
         adminBranch: {
             type: String,
-            enum: ["ALL", "CE", "AI/ML", "ECE", "ME", "BCA", "DIPLOMA CE"],
+            enum: [
+                "ALL",
+                "CE",
+                "AI/ML",
+                "ECE",
+                "ME",
+                "BCA",
+                "DIPLOMA CE"
+            ],
             default: "ALL",
             required: function () {
                 return this.role === "admin";
@@ -105,6 +130,10 @@ const userSchema = new Schema(
             uppercase: true,
             trim: true
         },
+
+        // =========================
+        // ACADEMIC INFORMATION
+        // =========================
 
         batch: {
             type: Number,

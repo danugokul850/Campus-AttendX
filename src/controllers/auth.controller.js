@@ -59,7 +59,6 @@ const register = async (req, res) => {
     }
 };
 
-
 // =====================================================
 // LOGIN
 // =====================================================
@@ -91,7 +90,8 @@ const login = async (req, res) => {
         if (!user.isActive) {
             return res.status(403).json({
                 success: false,
-                message: "Your account is inactive. Please contact the administrator."
+                message:
+                    "Your account is inactive. Please contact the administrator."
             });
         }
 
@@ -180,7 +180,6 @@ const login = async (req, res) => {
     }
 };
 
-
 // =====================================================
 // LOGOUT
 // =====================================================
@@ -209,8 +208,9 @@ const logout = async (req, res) => {
                         }
                     );
                 }
+
             } catch (err) {
-                // The access token might already be expired.
+                // Access token might already be expired
                 console.log(
                     "Access token verification during logout:",
                     err.message
@@ -229,6 +229,7 @@ const logout = async (req, res) => {
                 await redisClient.del(
                     `refreshToken:${refreshPayload._id}`
                 );
+
             } catch (err) {
                 console.log(
                     "Refresh token verification during logout:",
@@ -237,18 +238,15 @@ const logout = async (req, res) => {
             }
         }
 
-        // Clear cookies
-        res.clearCookie("token", {
+        // Clear cookies using the same options as login
+        const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax"
-        });
+        };
 
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax"
-        });
+        res.clearCookie("token", cookieOptions);
+        res.clearCookie("refreshToken", cookieOptions);
 
         return res.status(200).json({
             success: true,
@@ -264,7 +262,6 @@ const logout = async (req, res) => {
         });
     }
 };
-
 
 // =====================================================
 // GET CURRENT USER
@@ -299,7 +296,6 @@ const me = async (req, res) => {
         });
     }
 };
-
 
 // =====================================================
 // REFRESH ACCESS TOKEN
@@ -401,7 +397,6 @@ const refreshToken = async (req, res) => {
     }
 };
 
-
 // =====================================================
 // CHANGE PASSWORD
 // =====================================================
@@ -416,12 +411,15 @@ const changePassword = async (req, res) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Current password and new password are required"
+                message:
+                    "Current password and new password are required"
             });
         }
 
         // Get authenticated user
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(
+            req.user.id
+        );
 
         if (!user) {
             return res.status(404).json({
@@ -452,7 +450,8 @@ const changePassword = async (req, res) => {
         if (isSamePassword) {
             return res.status(400).json({
                 success: false,
-                message: "New password must be different from old password"
+                message:
+                    "New password must be different from old password"
             });
         }
 
@@ -466,7 +465,8 @@ const changePassword = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Password changed successfully. Please log in again.",
+            message:
+                "Password changed successfully. Please log in again.",
             requireLogin: true
         });
 
@@ -479,7 +479,6 @@ const changePassword = async (req, res) => {
         });
     }
 };
-
 
 // =====================================================
 // EXPORT

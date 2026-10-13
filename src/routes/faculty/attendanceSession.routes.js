@@ -38,10 +38,11 @@ router.get(
     getMySessions
 );
 
-// ==========================================
+// =====================================================
 // Monthly attendance report
+// IMPORTANT: Register before /:id
 // GET /api/attendance-sessions/reports/monthly
-// ==========================================
+// =====================================================
 router.get(
     "/reports/monthly",
     authMiddleware,
@@ -49,10 +50,10 @@ router.get(
     getMonthlyAttendanceReport
 );
 
-// ==========================================
+// =====================================================
 // Download monthly attendance report
 // GET /api/attendance-sessions/reports/monthly/download
-// ==========================================
+// =====================================================
 router.get(
     "/reports/monthly/download",
     authMiddleware,

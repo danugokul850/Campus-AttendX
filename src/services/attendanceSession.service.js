@@ -9,8 +9,8 @@ const User = require("../models/User");
 // SESSION CONFIGURATION
 // ==========================================
 
-// A session remains active for 5 minutes.
-// The QR code should refresh every 12 seconds.
+// A session lasts five minutes.
+// The QR expiry timestamp is initially set to 12 seconds.
 const SESSION_DURATION = 5 * 60 * 1000;
 const QR_DURATION = 12 * 1000;
 
@@ -23,7 +23,7 @@ const createAttendanceSession = async ({ facultyId, subjectId }) => {
         throw new Error("A valid subjectId is required");
     }
 
-    // Verify subject ownership and approval.
+    // Verify subject ownership, approval, and active status.
     const subject = await Subject.findOne({
         _id: subjectId,
         submittedBy: facultyId,
@@ -37,7 +37,8 @@ const createAttendanceSession = async ({ facultyId, subjectId }) => {
         );
     }
 
-    // Prevent another session for this subject within one hour.
+    // Prevent the same faculty from creating another session
+    // for this subject within one hour.
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
     const recentSession = await AttendanceSession.findOne({
@@ -177,7 +178,11 @@ const markAttendance = async ({ sessionId, studentId }) => {
     // Verify the associated subject.
     const subject = await Subject.findById(session.subject);
 
-    if (!subject || !subject.isActive || subject.status !== "approved") {
+    if (
+        !subject ||
+        !subject.isActive ||
+        subject.status !== "approved"
+    ) {
         throw new Error(
             "The subject associated with this session is unavailable"
         );
@@ -203,7 +208,7 @@ const markAttendance = async ({ sessionId, studentId }) => {
         throw new Error("You are not eligible for this subject");
     }
 
-    // Prevent duplicate attendance.
+    // Prevent duplicate attendance for the same session.
     const existingAttendance = await Attendance.findOne({
         session: sessionId,
         student: studentId
@@ -213,7 +218,6 @@ const markAttendance = async ({ sessionId, studentId }) => {
         throw new Error("Attendance already marked");
     }
 
-    // Create the attendance record.
     return Attendance.create({
         session: sessionId,
         student: studentId,
@@ -242,10 +246,12 @@ const getAttendanceSummary = async ({ sessionId, facultyId }) => {
     const subject = session.subject;
 
     if (!subject) {
-        throw new Error("Subject associated with this session was not found");
+        throw new Error(
+            "Subject associated with this session was not found"
+        );
     }
 
-    // Get all active students eligible for this subject.
+    // Find all active students eligible for this subject.
     const students = await User.find({
         role: "student",
         course: subject.course,
@@ -256,7 +262,7 @@ const getAttendanceSummary = async ({ sessionId, facultyId }) => {
         .select("firstName lastName registrationNumber")
         .sort({ registrationNumber: 1 });
 
-    // Get students who marked attendance.
+    // Find students who marked attendance.
     const attendanceRecords = await Attendance.find({
         session: sessionId,
         status: "present"
@@ -334,7 +340,9 @@ const getMonthlyAttendanceReport = async ({
 }) => {
     const selectedMonth = Number(month);
     const selectedYear = Number(year);
+    const currentYear = new Date().getFullYear();
 
+    // Validate month.
     if (
         !Number.isInteger(selectedMonth) ||
         selectedMonth < 1 ||
@@ -343,10 +351,11 @@ const getMonthlyAttendanceReport = async ({
         throw new Error("Invalid month");
     }
 
+    // Validate year.
     if (
         !Number.isInteger(selectedYear) ||
         selectedYear < 2000 ||
-        selectedYear > new Date().getFullYear()
+        selectedYear > currentYear
     ) {
         throw new Error("Invalid year");
     }
@@ -355,6 +364,8 @@ const getMonthlyAttendanceReport = async ({
         throw new Error("A valid subjectId is required");
     }
 
+    // Only allow the faculty member to report on their own
+    // approved and active subject.
     const subject = await Subject.findOne({
         _id: subjectId,
         submittedBy: facultyId,
@@ -394,6 +405,7 @@ const getMonthlyAttendanceReport = async ({
         );
     }
 
+    // Find all sessions for this subject during the selected month.
     const sessions = await AttendanceSession.find({
         subject: subject._id,
         faculty: facultyId,
@@ -405,6 +417,7 @@ const getMonthlyAttendanceReport = async ({
 
     const totalClassesConducted = sessions.length;
 
+    // Find eligible active students.
     const students = await User.find({
         role: "student",
         course: subject.course,
@@ -424,6 +437,7 @@ const getMonthlyAttendanceReport = async ({
         semester: subject.semester
     };
 
+    // Return a report even when no classes were conducted.
     if (totalClassesConducted === 0) {
         return {
             month: selectedMonth,
@@ -452,10 +466,12 @@ const getMonthlyAttendanceReport = async ({
         status: "present"
     });
 
+    // Count attended classes for each student.
     const attendanceCount = new Map();
 
     for (const record of attendanceRecords) {
         const studentId = record.student.toString();
+
         attendanceCount.set(
             studentId,
             (attendanceCount.get(studentId) || 0) + 1
@@ -541,7 +557,7 @@ const downloadMonthlyAttendanceReport = async ({
         ]);
     }
 
-    // Escape commas, quotes, and newlines safely for CSV.
+    // Escape quotes, commas, and newlines for valid CSV.
     const csv = rows
         .map(row =>
             row

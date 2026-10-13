@@ -5,47 +5,40 @@ const {
     deleteFromGoogleDrive
 } = require("./googleDrive.service");
 
-
 // ==========================================
 // Admin branch scope helper
 // ==========================================
 
 const applyAdminBranchScope = (filter, adminBranch) => {
-    // Super admin can access all branches
+    // Super admin can access all branches.
     if (adminBranch === "ALL") {
         return filter;
     }
 
-    // Branch admin must have a configured branch
+    // Branch admin must have a configured branch.
     if (!adminBranch) {
         throw new Error("Admin branch is not configured");
     }
 
-    // Restrict query to admin's branch
+    // Restrict access to the admin's branch.
     filter.branch = adminBranch;
 
     return filter;
 };
 
-
 // ==========================================
 // Faculty creates a new subject
 // ==========================================
 
-const createSubject = async ({
-    data,
-    facultyId,
-    file
-}) => {
+const createSubject = async ({ data, facultyId, file }) => {
     if (!file) {
         throw new Error("Syllabus PDF is required");
     }
 
-    // Upload PDF to Google Drive
+    // Upload the syllabus first.
     const syllabus = await uploadToGoogleDrive(file);
 
     try {
-        // Create subject in MongoDB
         const subject = await Subject.create({
             subjectName: data.subjectName,
             subjectCode: data.subjectCode,
@@ -66,9 +59,8 @@ const createSubject = async ({
         });
 
         return subject;
-
     } catch (err) {
-        // Avoid leaving an unused PDF in Drive if DB creation fails
+        // Clean up the uploaded PDF if database creation fails.
         if (syllabus?.fileId) {
             try {
                 await deleteFromGoogleDrive(syllabus.fileId);
@@ -84,27 +76,23 @@ const createSubject = async ({
     }
 };
 
-
 // ==========================================
-// Get subjects submitted by a faculty member
+// Faculty gets their submitted subjects
 // ==========================================
 
 const getMySubjects = async (facultyId) => {
-    return await Subject.find({
+    return Subject.find({
         submittedBy: facultyId
     })
         .populate(
             "reviewedBy",
             "firstName lastName emailId"
         )
-        .sort({
-            createdAt: -1
-        });
+        .sort({ createdAt: -1 });
 };
 
-
 // ==========================================
-// Get one faculty submission
+// Faculty gets one of their submissions
 // ==========================================
 
 const getMySubjectById = async ({
@@ -114,11 +102,10 @@ const getMySubjectById = async ({
     const subject = await Subject.findOne({
         _id: subjectId,
         submittedBy: facultyId
-    })
-        .populate(
-            "reviewedBy",
-            "firstName lastName emailId"
-        );
+    }).populate(
+        "reviewedBy",
+        "firstName lastName emailId"
+    );
 
     if (!subject) {
         throw new Error("Subject submission not found");
@@ -126,7 +113,6 @@ const getMySubjectById = async ({
 
     return subject;
 };
-
 
 // ==========================================
 // Admin gets all subjects
@@ -138,15 +124,13 @@ const getAllSubjects = async ({
 }) => {
     const filter = {};
 
-    // Optional status filter
     if (status) {
         filter.status = status;
     }
 
-    // Apply admin branch restriction
     applyAdminBranchScope(filter, adminBranch);
 
-    return await Subject.find(filter)
+    return Subject.find(filter)
         .populate(
             "submittedBy",
             "firstName lastName emailId"
@@ -155,11 +139,8 @@ const getAllSubjects = async ({
             "reviewedBy",
             "firstName lastName emailId"
         )
-        .sort({
-            createdAt: -1
-        });
+        .sort({ createdAt: -1 });
 };
-
 
 // ==========================================
 // Admin gets one subject
@@ -173,7 +154,6 @@ const getSubjectById = async ({
         _id: subjectId
     };
 
-    // Apply admin branch restriction
     applyAdminBranchScope(filter, adminBranch);
 
     const subject = await Subject.findOne(filter)
@@ -193,9 +173,8 @@ const getSubjectById = async ({
     return subject;
 };
 
-
 // ==========================================
-// Admin approves subject
+// Admin approves a subject
 // ==========================================
 
 const approveSubject = async ({
@@ -207,7 +186,6 @@ const approveSubject = async ({
         _id: subjectId
     };
 
-    // Apply admin branch restriction
     applyAdminBranchScope(filter, adminBranch);
 
     const subject = await Subject.findOne(filter);
@@ -231,9 +209,8 @@ const approveSubject = async ({
     return subject;
 };
 
-
 // ==========================================
-// Admin rejects subject
+// Admin rejects a subject
 // ==========================================
 
 const rejectSubject = async ({
@@ -246,7 +223,6 @@ const rejectSubject = async ({
         _id: subjectId
     };
 
-    // Apply admin branch restriction
     applyAdminBranchScope(filter, adminBranch);
 
     const subject = await Subject.findOne(filter);
@@ -256,7 +232,7 @@ const rejectSubject = async ({
     }
 
     if (!reason || reason.trim().length < 3) {
-        throw new Error("Rejection reason is required");
+        throw new Error("Rejection reason must contain at least 3 characters");
     }
 
     subject.status = "rejected";
@@ -268,7 +244,6 @@ const rejectSubject = async ({
 
     return subject;
 };
-
 
 // ==========================================
 // Faculty resubmits a subject
@@ -298,7 +273,7 @@ const resubmitSubject = async ({
         );
     }
 
-    // Update subject information
+    // Update subject information.
     subject.subjectName = data.subjectName;
     subject.subjectCode = data.subjectCode;
     subject.course = data.course;
@@ -307,24 +282,31 @@ const resubmitSubject = async ({
     subject.credits = Number(data.credits);
     subject.type = data.type;
 
-    // Replace syllabus PDF if a new file is uploaded
-    if (file) {
-        // Upload the new file first so the old file remains available
-        // if the new upload fails.
-        const newSyllabus = await uploadToGoogleDrive(file);
+    let newSyllabus = null;
+    const oldFileId = subject.syllabus?.fileId;
 
-        const oldFileId = subject.syllabus?.fileId;
+    // Upload the replacement PDF if provided.
+    if (file) {
+        newSyllabus = await uploadToGoogleDrive(file);
 
         subject.syllabus = {
             fileId: newSyllabus.fileId,
             fileName: newSyllabus.fileName,
             fileUrl: newSyllabus.fileUrl
         };
+    }
 
-        try {
-            await subject.save();
-        } catch (err) {
-            // Clean up the newly uploaded file if saving fails
+    // Require admin approval again after resubmission.
+    subject.status = "pending";
+    subject.reviewedBy = null;
+    subject.reviewedAt = null;
+    subject.rejectionReason = null;
+
+    try {
+        await subject.save();
+    } catch (err) {
+        // Remove the newly uploaded PDF if saving fails.
+        if (newSyllabus?.fileId) {
             try {
                 await deleteFromGoogleDrive(newSyllabus.fileId);
             } catch (deleteErr) {
@@ -333,36 +315,29 @@ const resubmitSubject = async ({
                     deleteErr.message
                 );
             }
-
-            throw err;
         }
 
-        // Delete old file only after the database update succeeds
-        if (oldFileId && oldFileId !== newSyllabus.fileId) {
-            try {
-                await deleteFromGoogleDrive(oldFileId);
-            } catch (deleteErr) {
-                console.error(
-                    "Failed to delete previous syllabus:",
-                    deleteErr.message
-                );
-            }
-        }
-    } else {
-        await subject.save();
+        throw err;
     }
 
-    // Send the submission through admin approval again
-    subject.status = "pending";
-    subject.reviewedBy = null;
-    subject.reviewedAt = null;
-    subject.rejectionReason = null;
-
-    await subject.save();
+    // Delete the previous PDF only after saving succeeds.
+    if (
+        newSyllabus?.fileId &&
+        oldFileId &&
+        oldFileId !== newSyllabus.fileId
+    ) {
+        try {
+            await deleteFromGoogleDrive(oldFileId);
+        } catch (deleteErr) {
+            console.error(
+                "Failed to delete previous syllabus:",
+                deleteErr.message
+            );
+        }
+    }
 
     return subject;
 };
-
 
 // ==========================================
 // Exports

@@ -1,5 +1,4 @@
-const adminReportService =
-    require("../../services/Admin/adminReport.service");
+const adminReportService = require("../../services/Admin/adminReport.service");
 
 
 // =====================================================
