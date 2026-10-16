@@ -1,5 +1,5 @@
 const adminUserService =
-    require("../../services/adminUser.service");
+    require("../../services/Admin/adminUser.service");
 
 
 // =====================================================

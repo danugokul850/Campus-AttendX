@@ -1,5 +1,5 @@
-const Subject = require("../models/Subject");
-const User = require("../models/User");
+const Subject = require("../../models/Subject");
+const User = require("../../models/User");
 
 
 // =====================================================

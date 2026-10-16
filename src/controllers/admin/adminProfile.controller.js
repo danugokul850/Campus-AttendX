@@ -1,4 +1,4 @@
-const adminProfileService = require("../../services/adminProfile.service");
+const adminProfileService = require("../../services/Admin/adminProfile.service");
 
 
 /**

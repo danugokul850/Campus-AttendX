@@ -1,4 +1,4 @@
-const adminNotificationService = require("../../services/adminNotification.service");
+const adminNotificationService = require("../../services/Admin/adminNotification.service");
 
 
 // =====================================================

@@ -1,5 +1,5 @@
 const adminDashboardService =
-    require("../../services/adminDashboard.service");
+    require("../../services/Admin/adminDashboard.service");
 
 
 // =====================================================

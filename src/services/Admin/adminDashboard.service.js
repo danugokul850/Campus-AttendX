@@ -1,7 +1,7 @@
-const Subject = require("../models/Subject");
-const User = require("../models/User");
-const AttendanceSession = require("../models/AttendanceSession");
-const Attendance = require("../models/Attendance");
+const Subject = require("../../models/Subject");
+const User = require("../../models/User");
+const AttendanceSession = require("../../models/AttendanceSession");
+const Attendance = require("../../models/Attendance");
 
 
 // =====================================================

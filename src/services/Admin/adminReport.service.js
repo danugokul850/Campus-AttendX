@@ -1,10 +1,10 @@
-const AttendanceSession =require("../models/AttendanceSession");
+const AttendanceSession =require("../../models/AttendanceSession");
 
-const Attendance = require("../models/Attendance");
+const Attendance = require("../../models/Attendance");
 
-const Subject = require("../models/Subject");
+const Subject = require("../../models/Subject");
 
-const User = require("../models/User");
+const User = require("../../models/User");
 
 
 // =====================================================

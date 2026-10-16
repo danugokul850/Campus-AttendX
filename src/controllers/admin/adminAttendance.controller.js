@@ -1,5 +1,5 @@
 const adminAttendanceService =
-    require("../../services/adminAttendance.service");
+    require("../../services/Admin/adminAttendance.service");
 
 
 // =====================================================
