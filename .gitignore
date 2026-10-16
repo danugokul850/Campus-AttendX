@@ -3,14 +3,18 @@ node_modules/
 
 # Environment variables and credentials (never commit)
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 
 # Google OAuth credentials and tokens (never commit)
 credentials.json
 token.json
+client_secret*.json
 **/credentials.json
 **/token.json
+**/client_secret*.json
 
 # Logs
 logs/
@@ -39,8 +43,8 @@ coverage/
 # Optional npm cache
 .npm
 
-# Uploaded files (if you store profile images locally, e.g. multer uploads)
+# Uploaded files
 uploads/
 
-# PM2 process files (if used for deployment)
+# PM2 process files
 .pm2/
