@@ -30,6 +30,7 @@ const studentAttendanceRouter = require("./src/routes/student/studentAttendance.
 const studentSubjectsRouter = require("./src/routes/student/studentSubjects.routes");
 const studentNotificationRouter = require("./src/routes/student/studentNotification.routes");
 const studentSettingsRouter = require("./src/routes/student/studentSettings.routes");
+const studentScanAttendanceRouter = require("./src/routes/student/studentScanAttendance.routes");
 
 
 
@@ -64,6 +65,7 @@ app.use("/api/student/attendance",studentAttendanceRouter);
 app.use("/api/student/subjects",studentSubjectsRouter);
 app.use("/api/student/notifications",studentNotificationRouter);
 app.use("/api/student/settings",studentSettingsRouter);
+app.use("/api/student/scan-attendance",studentScanAttendanceRouter);
 
 
 
